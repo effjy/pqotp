@@ -1,6 +1,6 @@
 <div align="center">
 
-# PQOTP
+<a href="https://github.com/effjy/pqotp/"><img src="titles/pqotp-title.svg" height="52" alt="PQOTP"></a>
 
 **Post-quantum TOTP / HOTP authenticator — GTK3 app + CLI.**
 
