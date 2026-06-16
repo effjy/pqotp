@@ -2,11 +2,16 @@
 
 # PQOTP
 
-**Post-quantum TOTP / HOTP authenticator for the command line.**
+**Post-quantum TOTP / HOTP authenticator — GTK3 app + CLI.**
 
 ![C](https://img.shields.io/badge/Language-C-teal?style=flat-square&labelColor=1a1a1a)
 ![PQ](https://img.shields.io/badge/PQ-8a2be2?style=flat-square)
+![GTK3](https://img.shields.io/badge/GTK3-teal?style=flat-square)
 ![CLI](https://img.shields.io/badge/CLI-555?style=flat-square)
+
+<br>
+
+<img src="screenshot_1.png" width="760" alt="PQOTP">
 
 </div>
 
@@ -35,27 +40,74 @@ digits, period) differ.
 PQOTP ships as both a **GTK3 desktop app** (`pqotp-gui`) and a **CLI** (`pqotp`)
 that share the same vault format.
 
-## Build
+## Prerequisites
 
-The CLI needs `libsodium`, `libargon2` and `libcrypto` (OpenSSL); the GUI also
-needs `gtk+-3.0`.
+A C compiler, `make`, `pkg-config`, and the following libraries (with their
+development headers):
+
+| Library | Used for |
+|:---|:---|
+| `libsodium`  | AEAD ciphers, Argon2 raw API, X448, locked memory |
+| `libargon2`  | Argon2id master-key derivation |
+| `libcrypto` (OpenSSL) | HMAC-SHA1/256/512 and X448 |
+| `gtk+-3.0`   | the desktop app only (not needed for the CLI) |
+
+**Debian / Ubuntu**
 
 ```sh
-make                  # builds ./pqotp-gui and ./pqotp
-sudo make install     # installs both binaries, the icon (all sizes) and the
-                      # desktop entry globally so PQOTP appears in the menu/taskbar
-sudo make uninstall   # removes everything it installed
+sudo apt install build-essential pkg-config \
+     libsodium-dev libargon2-dev libssl-dev libgtk-3-dev
 ```
 
-## Desktop app
+**Fedora**
+
+```sh
+sudo dnf install gcc make pkgconf-pkg-config \
+     libsodium-devel libargon2-devel openssl-devel gtk3-devel
+```
+
+**Arch**
+
+```sh
+sudo pacman -S base-devel libsodium argon2 openssl gtk3
+```
+
+The CRYSTALS-Kyber-1024 reference implementation is bundled in `src/kyber/`, so
+there is no Kyber package to install.
+
+## Compiling
+
+```sh
+make            # builds ./pqotp-gui (GTK3 app) and ./pqotp (CLI)
+make clean      # removes build artifacts
+```
+
+To build against a different prefix or compiler, override the usual variables,
+e.g. `make CC=clang` or `make PREFIX=/opt/pqotp`.
+
+## Installation
+
+```sh
+sudo make install     # installs both binaries to $(PREFIX)/bin (default /usr/local),
+                      # the icon (scalable SVG + 16–256 px PNGs) and the .desktop
+                      # entry, so PQOTP shows up in the applications menu & taskbar
+sudo make uninstall   # removes every file the install step created
+```
+
+After installing, `pqotp-gui` and `pqotp` are on your `PATH` and **PQOTP**
+appears in the menu under *Utility / Security*.
+
+## Usage
+
+### Desktop app
 
 Launch **PQOTP** from your applications menu, or run `pqotp-gui`. Create or open
 a vault, then watch the live one-time codes refresh every second with a
-per-code countdown — double-click a row (or *Copy code*) to copy the current
+per-code countdown — double-click a row (or **Copy code**) to copy the current
 code; the clipboard auto-clears after 25 s. Add accounts by hand or paste an
-`otpauth://` URI, then *Save Vault*.
+`otpauth://` URI, then click **Save Vault** to write your changes to disk.
 
-## CLI usage
+### CLI
 
 ```sh
 # Create a post-quantum hybrid vault (default ~/.pqotp/vault.potv)
@@ -73,7 +125,18 @@ pqotp code github                # filter by issuer/account substring
 pqotp remove 0                   # delete the account at index 0
 ```
 
-Use `-f FILE` before any command to point at a different vault.
+Add `-f FILE` before any command to point at a specific vault, and run
+`pqotp --help` for the full option list.
+
+### Vault location
+
+| Front-end | Default vault path |
+|:---|:---|
+| CLI (`pqotp`)        | `~/.pqotp/vault.potv` |
+| Desktop (`pqotp-gui`)| `~/.local/share/pqotp/vault.potv` |
+
+The two front-ends share one file format, so point either at the other's file
+with `-f` (CLI) or the **Browse…** button (GUI) to use a single vault for both.
 
 ## License
 
