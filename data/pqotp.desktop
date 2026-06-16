@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=PQOTP
+GenericName=Two-Factor Authenticator
+Comment=Post-quantum TOTP/HOTP authenticator
+Exec=pqotp-gui
+Icon=pqotp
+Terminal=false
+Categories=Utility;Security;GTK;
+Keywords=2FA;TOTP;HOTP;OTP;authenticator;post-quantum;security;
+StartupNotify=true
