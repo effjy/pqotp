@@ -38,7 +38,7 @@
 #include <pwd.h>
 
 #ifndef PQOTP_VERSION
-#define PQOTP_VERSION "0.0.0"
+#define PQOTP_VERSION "0.1.1"
 #endif
 
 #define PW_MAX 512

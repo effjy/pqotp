@@ -323,6 +323,9 @@ static int deserialize(otp_vault_t *v, const uint8_t *buf, size_t len) {
         wipe_free(issuer); wipe_free(account);
         if (idx == (size_t)-1) return -1;
     }
+    /* No bytes should remain after the declared entries: a mismatch means a
+     * malformed (though still authenticated) plaintext, so treat it as corrupt. */
+    if (p != end) return -1;
     return 0;
 }
 

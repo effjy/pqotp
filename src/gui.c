@@ -25,7 +25,7 @@
 #include "secure_buffer.h"
 
 #ifndef PQOTP_VERSION
-#define PQOTP_VERSION "0.1.0"
+#define PQOTP_VERSION "0.1.1"
 #endif
 #define APP_ID "org.pqotp.PQOTP"
 #define PASSWORD_MAX 4096
@@ -154,6 +154,7 @@ typedef struct {
 struct Job {
     App *app;
     int  kind;                  /* 0 = load, 1 = save */
+    int  created;               /* save: this is the initial create of a vault */
     char path[4096];
     char password[PASSWORD_MAX];
     otp_vault_t *vault;         /* save: borrowed */
@@ -300,6 +301,23 @@ static gboolean job_done_idle(gpointer data) {
             char m[300]; g_snprintf(m, sizeof(m), "\xE2\x9C\x96 %s", job->err);
             set_status_class(app->lk_status, "status-err", m);
         }
+    } else if (job->created) {   /* initial create-save (still on lock view) */
+        gtk_widget_set_sensitive(app->lk_button, TRUE);
+        if (job->rc == 0) {
+            gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(app->lk_progress), 1.0);
+            gtk_progress_bar_set_text(GTK_PROGRESS_BAR(app->lk_progress), "unlocked");
+            set_status_class(app->lk_status, "status-ok", "\xE2\x9C\x94 Vault created.");
+            show_vault_view(app);
+        } else {
+            /* Roll back the half-created session and stay on the lock view. */
+            if (app->vault) { otp_vault_free(app->vault); app->vault = NULL; }
+            sodium_memzero(app->master, PASSWORD_MAX);
+            gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(app->lk_progress), 0.0);
+            gtk_progress_bar_set_text(GTK_PROGRESS_BAR(app->lk_progress), "locked");
+            char m[300]; g_snprintf(m, sizeof(m), "\xE2\x9C\x96 %s", job->err);
+            set_status_class(app->lk_status, "status-err", m);
+            info_dialog(app, GTK_MESSAGE_ERROR, "%s", job->err);
+        }
     } else {                /* save */
         if (job->rc == 0) {
             set_dirty(app, FALSE);
@@ -431,13 +449,15 @@ static void on_unlock_or_create(GtkButton *b, gpointer user) {
         app->vault_path = g_strdup(path);
         g_strlcpy(app->master, pw, PASSWORD_MAX);
 
+        /* Persist the empty vault on a worker thread. Stay on the lock view
+         * until it succeeds, so a failed save never strands the user in the
+         * vault view for a file that was never written. */
         gtk_widget_set_sensitive(app->lk_button, FALSE);
         start_pulse(app, "deriving key\xE2\x80\xA6");
         set_status_class(app->lk_status, "status-run",
                          "\xE2\x96\xB6 Creating vault\xE2\x80\xA6 (deriving key)");
-        show_vault_view(app);
-        gtk_widget_set_sensitive(app->window, FALSE);
         Job *job = start_job(app, 1);
+        job->created = 1;
         g_strlcpy(job->path, path, sizeof(job->path));
         g_strlcpy(job->password, pw, sizeof(job->password));
         job->vault = app->vault;
