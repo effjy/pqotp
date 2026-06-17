@@ -138,6 +138,24 @@ Add `-f FILE` before any command to point at a specific vault, and run
 The two front-ends share one file format, so point either at the other's file
 with `-f` (CLI) or the **Browse…** button (GUI) to use a single vault for both.
 
+## Changelog
+
+### v0.1.1
+
+Bug-fix and hardening release — no vault-format changes; v0.1.0 vaults open
+unchanged.
+
+- **Hardened** the libsodium-backed secure entry buffer (master password and
+  base32 secret fields): it now zeroes the unused tail of its guarded
+  allocation on every edit, so a typed-then-cleared secret no longer lingers in
+  locked memory, and guards its capacity growth against an integer overflow on
+  a pathological paste.
+- **Fixed** the GUI vault-creation flow: it now stays on the lock screen until
+  the initial save succeeds and rolls back on failure, instead of stranding you
+  in the vault view for a file that was never written.
+- **Robustness:** vault loading now rejects trailing bytes after the declared
+  accounts as corruption.
+
 ## License
 
 MIT.

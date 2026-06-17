@@ -5,7 +5,7 @@
 #   sudo make uninstall remove all installed files
 #   make clean          remove build artifacts
 
-VERSION := 0.1.0
+VERSION := 0.1.1
 GUI      := pqotp-gui
 CLI      := pqotp
 
