@@ -57,7 +57,9 @@ int            otp_vault_is_hybrid(const otp_vault_t *v);
 size_t             otp_vault_count(const otp_vault_t *v);
 const otp_entry_t *otp_vault_get(const otp_vault_t *v, size_t index);
 
-/* Add an entry (fields copied). Returns the new index or (size_t)-1. */
+/* Add an entry (fields copied). Entries are kept sorted by issuer then account
+ * (case-insensitive), so the entry is inserted at its sorted position. Returns
+ * the new index or (size_t)-1. */
 size_t otp_vault_add(otp_vault_t *v, const char *issuer, const char *account,
                      const uint8_t *secret, size_t secret_len,
                      otp_algo_t algo, int digits, int period);

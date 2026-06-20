@@ -37,6 +37,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -361,6 +362,34 @@ const otp_entry_t *otp_vault_get(const otp_vault_t *v, size_t i) {
     return i < v->count ? &v->entries[i] : NULL;
 }
 
+/* Case-insensitive ordering of two entries by issuer, then account, with a
+ * case-sensitive tie-break so the order is total and stable. */
+static int entry_cmp(const char *issuer_a, const char *account_a,
+                     const char *issuer_b, const char *account_b) {
+    int c = strcasecmp(issuer_a, issuer_b);
+    if (c) return c;
+    c = strcasecmp(account_a, account_b);
+    if (c) return c;
+    c = strcmp(issuer_a, issuer_b);
+    if (c) return c;
+    return strcmp(account_a, account_b);
+}
+
+/* Index at which an entry should be inserted to keep v->entries sorted by
+ * issuer/account (binary search; entries are always sorted). A new entry sorts
+ * after existing entries that compare equal. */
+static size_t insert_pos(const otp_vault_t *v, const char *issuer,
+                         const char *account) {
+    size_t lo = 0, hi = v->count;
+    while (lo < hi) {
+        size_t mid = lo + (hi - lo) / 2;
+        if (entry_cmp(v->entries[mid].issuer, v->entries[mid].account,
+                      issuer, account) <= 0) lo = mid + 1;
+        else hi = mid;
+    }
+    return lo;
+}
+
 size_t otp_vault_add(otp_vault_t *v, const char *issuer, const char *account,
                      const uint8_t *secret, size_t secret_len,
                      otp_algo_t algo, int digits, int period) {
@@ -372,17 +401,23 @@ size_t otp_vault_add(otp_vault_t *v, const char *issuer, const char *account,
         v->entries = ne;
         v->cap = nc;
     }
-    otp_entry_t *e = &v->entries[v->count];
-    memset(e, 0, sizeof(*e));
-    e->issuer = dup_field(issuer);
-    e->account = dup_field(account);
-    if (!e->issuer || !e->account) { entry_wipe(e); return (size_t)-1; }
-    memcpy(e->secret, secret, secret_len);
-    e->secret_len = secret_len;
-    e->algo = algo;
-    e->digits = digits;
-    e->period = period;
-    return v->count++;
+    /* Build the entry off to the side, then slot it into sorted position. */
+    otp_entry_t e;
+    memset(&e, 0, sizeof(e));
+    e.issuer = dup_field(issuer);
+    e.account = dup_field(account);
+    if (!e.issuer || !e.account) { entry_wipe(&e); return (size_t)-1; }
+    memcpy(e.secret, secret, secret_len);
+    e.secret_len = secret_len;
+    e.algo = algo;
+    e.digits = digits;
+    e.period = period;
+    size_t pos = insert_pos(v, e.issuer, e.account);
+    memmove(&v->entries[pos + 1], &v->entries[pos],
+            (v->count - pos) * sizeof(v->entries[0]));
+    v->entries[pos] = e;
+    v->count++;
+    return pos;
 }
 
 int otp_vault_remove(otp_vault_t *v, size_t i) {
