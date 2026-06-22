@@ -11,7 +11,7 @@
 
 <br>
 
-<img src="screenshot_1.png" width="760" alt="PQOTP">
+<img src="screenshot.png" width="760" alt="PQOTP">
 
 </div>
 
