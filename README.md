@@ -14,7 +14,7 @@
 <img src="screenshot.png" width="760" alt="PQOTP">
 
 </div>
-
+<br>
 PQOTP is a two-factor (2FA) authenticator that stores your TOTP/HOTP secrets in
 a single encrypted vault — the companion to [PQPMan](https://github.com/effjy/pqpman).
 Unlike Google Authenticator or Authy, the seed store is sealed with the same
